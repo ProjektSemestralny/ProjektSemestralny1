@@ -1,24 +1,33 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Globalization;
+
 namespace ProjektSemestralny_1
 {
     internal class Program
     {
         static void Main(string[] args)
         {
-            List<Zajecia> grafik = WczytajZPliku();
+            UtworzPlikRezerwacjiJesliNieIstnieje();
+
+            List<Zajecia> grafik = WczytajGrafikZPliku();
+            List<Rezerwacja> rezerwacje = WczytajRezerwacjeZPliku();
 
             if (grafik.Count == 0)
             {
-                grafik.Add(new Zajecia
-                {
-                    Nazwa = "Programowanie",
-                    Rodzaj = "Laboratorium",
-                    Data = new DateTime(2026, 5, 20, 10, 0, 0),
-                    LimitMiejsc = 20,
-                    Zapisani = 0
-                });
+                UtworzPrzykladowyGrafik();
+                grafik = WczytajGrafikZPliku();
+            }
+
+            if (grafik.Count == 0)
+            {
+                Console.WriteLine("Nie udalo sie wczytac grafiku.");
+                Console.WriteLine("Folder programu:");
+                Console.WriteLine(Directory.GetCurrentDirectory());
+                Console.ReadLine();
+                return;
             }
 
             bool dziala = true;
@@ -26,13 +35,12 @@ namespace ProjektSemestralny_1
             while (dziala)
             {
                 Console.Clear();
-                Console.WriteLine("=== SYSTEM REZERWACJI ZAJEC ===");
-                Console.WriteLine("1. Pokaz zajecia");
+                Console.WriteLine("=== SYSTEM REZERWACJI ZAJEC SPORTOWYCH ===");
+                Console.WriteLine("1. Pokaz grafik");
                 Console.WriteLine("2. Zarezerwuj miejsce");
-                Console.WriteLine("3. Dodaj zajecia");
-                Console.WriteLine("4. Usun zajecia");
-                Console.WriteLine("5. Zapisz do pliku CSV");
-                Console.WriteLine("6. Wyjscie");
+                Console.WriteLine("3. Pokaz rezerwacje");
+                Console.WriteLine("4. Zapisz rezerwacje do CSV");
+                Console.WriteLine("5. Wyjscie");
                 Console.Write("Wybierz opcje: ");
 
                 string wybor = Console.ReadLine();
@@ -40,166 +48,65 @@ namespace ProjektSemestralny_1
                 switch (wybor)
                 {
                     case "1":
-                        PokazZajecia(grafik);
+                        PokazGrafik(grafik, rezerwacje);
                         break;
 
                     case "2":
-                        Zarezerwuj(grafik);
+                        ZarezerwujMiejsce(grafik, rezerwacje);
                         break;
 
                     case "3":
-                        DodajZajecia(grafik);
+                        PokazRezerwacje(grafik, rezerwacje);
                         break;
 
                     case "4":
-                        UsunZajecia(grafik);
-                        break;
-
-                    case "5":
-                        ZapiszDoPliku(grafik);
-                        Console.WriteLine("Zapisano grafik do pliku CSV.");
+                        ZapiszRezerwacjeDoPliku(rezerwacje);
+                        Console.WriteLine("Zapisano rezerwacje do pliku CSV.");
                         Console.ReadLine();
                         break;
 
-                    case "6":
+                    case "5":
                         dziala = false;
+                        break;
+
+                    default:
+                        Console.WriteLine("Nieprawidlowa opcja.");
+                        Console.ReadLine();
                         break;
                 }
             }
         }
 
-        static void PokazZajecia(List<Zajecia> grafik)
-        {
-            Console.Clear();
-            Console.WriteLine("=== LISTA ZAJEC ===");
-
-            for (int i = 0; i < grafik.Count; i++)
-            {
-                Console.WriteLine($"{i + 1}. {grafik[i].Nazwa} - {grafik[i].Rodzaj}");
-                Console.WriteLine($"   Data: {grafik[i].Data}");
-                Console.WriteLine($"   Miejsca: {grafik[i].Zapisani}/{grafik[i].LimitMiejsc}");
-                Console.WriteLine();
-            }
-
-            Console.WriteLine("Nacisnij Enter, aby wrocic do menu.");
-            Console.ReadLine();
-        }
-
-        static void Zarezerwuj(List<Zajecia> grafik)
-        {
-            Console.Clear();
-            PokazZajeciaBezPauzy(grafik);
-
-            Console.Write("Podaj numer zajec do rezerwacji: ");
-            string tekst = Console.ReadLine();
-
-            if (int.TryParse(tekst, out int numer))
-            {
-                int indeks = numer - 1;
-
-                if (indeks >= 0 && indeks < grafik.Count)
-                {
-                    grafik[indeks].ZarezerwujMiejsce();
-                }
-                else
-                {
-                    Console.WriteLine("Nie ma zajec o takim numerze.");
-                }
-            }
-            else
-            {
-                Console.WriteLine("Podano nieprawidlowa liczbe.");
-            }
-
-            Console.WriteLine("Nacisnij Enter, aby wrocic do menu.");
-            Console.ReadLine();
-        }
-
-        static void DodajZajecia(List<Zajecia> grafik)
-        {
-            Console.Clear();
-
-            Console.Write("Podaj nazwe zajec: ");
-            string nazwa = Console.ReadLine();
-
-            Console.Write("Podaj rodzaj zajec: ");
-            string rodzaj = Console.ReadLine();
-
-            Console.Write("Podaj grupe zajec: ");
-            string grupa = Console.ReadLine();
-
-            Console.Write("Podaj poziom zajec: ");
-            string poziom = Console.ReadLine();
-
-            Console.Write("Podaj prowadzacego: ");
-            string prowadzacy = Console.ReadLine();
-
-            Console.Write("Podaj date i godzine zajec, np. 2026-05-20 10:00: ");
-            string dataTekst = Console.ReadLine();
-
-            if (!DateTime.TryParse(dataTekst, out DateTime data))
-            {
-                Console.WriteLine("Nieprawidlowa data.");
-                Console.ReadLine();
-                return;
-            }
-
-            Console.Write("Podaj limit miejsc: ");
-            string limitTekst = Console.ReadLine();
-
-            if (!int.TryParse(limitTekst, out int limit) || limit <= 0)
-            {
-                Console.WriteLine("Nieprawidlowy limit miejsc.");
-                Console.ReadLine();
-                return;
-            }
-
-            Zajecia noweZajecia = new Zajecia
-            {
-                Nazwa = nazwa,
-                Rodzaj = rodzaj,
-                Grupa = grupa,
-                Poziom = poziom,
-                Data = data,
-                LimitMiejsc = limit,
-                Zapisani = 0,
-                Prowadzacy = prowadzacy
-            };
-
-            grafik.Add(noweZajecia);
-
-            Console.WriteLine("Dodano zajecia.");
-            Console.ReadLine();
-        }
-
-        static void PokazZajeciaBezPauzy(List<Zajecia> grafik)
-        {
-            Console.WriteLine("=== LISTA ZAJEC ===");
-
-            for (int i = 0; i < grafik.Count; i++)
-            {
-                Console.WriteLine($"{i + 1}. {grafik[i].Nazwa} - {grafik[i].Rodzaj}, miejsca: {grafik[i].Zapisani}/{grafik[i].LimitMiejsc}");
-            }
-
-            Console.WriteLine();
-        }
-
-
-
-        static void ZapiszDoPliku(List<Zajecia> grafik)
+        static void UtworzPrzykladowyGrafik()
         {
             List<string> linie = new List<string>();
 
-            foreach (Zajecia zajecia in grafik)
-            {
-                string linia = $"{zajecia.Nazwa};{zajecia.Rodzaj};{zajecia.Grupa};{zajecia.Poziom};{zajecia.Data};{zajecia.LimitMiejsc};{zajecia.Zapisani};{zajecia.Prowadzacy}";
-                linie.Add(linia);
-            }
+            linie.Add("Id;Nazwa;Poziom;Data;CzasTrwaniaMinuty;LimitMiejsc;Prowadzacy;Miejsce");
+            linie.Add("1;Tenis;Poczatkujacy;2026-05-20 10:00;60;2;Jan Kowalski;Kort 1");
+            linie.Add("2;Tenis;Sredni;2026-05-20 11:00;60;2;Jan Kowalski;Kort 2");
+            linie.Add("3;Badminton;Dla wszystkich;2026-05-20 12:00;60;2;Anna Nowak;Hala A");
+            linie.Add("4;Squash;Poczatkujacy;2026-05-20 13:30;45;2;Piotr Zielinski;Kort squash 1");
+            linie.Add("5;Tenis stolowy;Dla wszystkich;2026-05-20 15:00;60;4;Marek Wisniewski;Sala rekreacyjna");
+            linie.Add("6;Zdrowe plecy;Dla wszystkich;2026-05-20 16:30;60;15;Katarzyna Wozniak;Sala fitness");
+            linie.Add("7;Yoga;Dla wszystkich;2026-05-20 17:30;60;15;Ewa Zielinska;Sala fitness");
+            linie.Add("8;Boks;Sredni;2026-05-20 18:30;90;20;Tomasz Lewandowski;Sala walk");
+            linie.Add("9;Judo;Poczatkujacy;2026-05-20 20:00;90;20;Pawel Kaminski;Sala walk");
+            linie.Add("10;Gimnastyka;Dla dzieci;2026-05-21 16:00;60;12;Monika Kowal;Sala gimnastyczna");
+            linie.Add("11;Pilka nozna;Dla wszystkich;2026-05-21 18:00;90;14;Adam Mazur;Boisko");
+            linie.Add("12;Koszykowka;Dla wszystkich;2026-05-21 19:30;90;10;Michal Nowicki;Hala glowna");
 
             File.WriteAllLines("grafik.csv", linie);
         }
 
-        static List<Zajecia> WczytajZPliku()
+        static void UtworzPlikRezerwacjiJesliNieIstnieje()
+        {
+            if (!File.Exists("rezerwacje.csv"))
+            {
+                File.WriteAllText("rezerwacje.csv", "IdZajec;ImieNazwisko;DataRezerwacji");
+            }
+        }
+
+        static List<Zajecia> WczytajGrafikZPliku()
         {
             List<Zajecia> grafik = new List<Zajecia>();
 
@@ -210,57 +117,243 @@ namespace ProjektSemestralny_1
 
             string[] linie = File.ReadAllLines("grafik.csv");
 
-            foreach (string linia in linie)
+            for (int i = 1; i < linie.Length; i++)
             {
+                string linia = linie[i];
+
+                if (string.IsNullOrWhiteSpace(linia))
+                {
+                    continue;
+                }
+
                 string[] dane = linia.Split(';');
 
                 if (dane.Length == 8)
                 {
-                    Zajecia zajecia = new Zajecia
-                    {
-                        Nazwa = dane[0],
-                        Rodzaj = dane[1],
-                        Grupa = dane[2],
-                        Poziom = dane[3],
-                        Data = DateTime.Parse(dane[4]),
-                        LimitMiejsc = int.Parse(dane[5]),
-                        Zapisani = int.Parse(dane[6]),
-                        Prowadzacy = dane[7]
-                    };
+                    int id;
+                    int czasTrwania;
+                    int limitMiejsc;
+                    DateTime data;
 
-                    grafik.Add(zajecia);
+                    bool poprawneId = int.TryParse(dane[0].Trim(), out id);
+                    bool poprawnaData = DateTime.TryParseExact(
+                        dane[3].Trim(),
+                        "yyyy-MM-dd HH:mm",
+                        CultureInfo.InvariantCulture,
+                        DateTimeStyles.None,
+                        out data
+                    );
+                    bool poprawnyCzas = int.TryParse(dane[4].Trim(), out czasTrwania);
+                    bool poprawnyLimit = int.TryParse(dane[5].Trim(), out limitMiejsc);
+
+                    if (poprawneId && poprawnaData && poprawnyCzas && poprawnyLimit)
+                    {
+                        Zajecia zajecia = new Zajecia
+                        {
+                            Id = id,
+                            Nazwa = dane[1].Trim(),
+                            Poziom = dane[2].Trim(),
+                            Data = data,
+                            CzasTrwaniaMinuty = czasTrwania,
+                            LimitMiejsc = limitMiejsc,
+                            Prowadzacy = dane[6].Trim(),
+                            Miejsce = dane[7].Trim()
+                        };
+
+                        grafik.Add(zajecia);
+                    }
                 }
             }
 
             return grafik;
         }
-        static void UsunZajecia(List<Zajecia> grafik)
+
+        static List<Rezerwacja> WczytajRezerwacjeZPliku()
+        {
+            List<Rezerwacja> rezerwacje = new List<Rezerwacja>();
+
+            if (!File.Exists("rezerwacje.csv"))
+            {
+                return rezerwacje;
+            }
+
+            string[] linie = File.ReadAllLines("rezerwacje.csv");
+
+            for (int i = 1; i < linie.Length; i++)
+            {
+                string linia = linie[i];
+
+                if (string.IsNullOrWhiteSpace(linia))
+                {
+                    continue;
+                }
+
+                string[] dane = linia.Split(';');
+
+                if (dane.Length == 3)
+                {
+                    int idZajec;
+                    DateTime dataRezerwacji;
+
+                    bool poprawneId = int.TryParse(dane[0].Trim(), out idZajec);
+                    bool poprawnaData = DateTime.TryParseExact(
+                        dane[2].Trim(),
+                        "yyyy-MM-dd HH:mm",
+                        CultureInfo.InvariantCulture,
+                        DateTimeStyles.None,
+                        out dataRezerwacji
+                    );
+
+                    if (poprawneId && poprawnaData)
+                    {
+                        Rezerwacja rezerwacja = new Rezerwacja
+                        {
+                            IdZajec = idZajec,
+                            ImieNazwisko = dane[1].Trim(),
+                            DataRezerwacji = dataRezerwacji
+                        };
+
+                        rezerwacje.Add(rezerwacja);
+                    }
+                }
+            }
+
+            return rezerwacje;
+        }
+
+        static void ZapiszRezerwacjeDoPliku(List<Rezerwacja> rezerwacje)
+        {
+            List<string> linie = new List<string>();
+
+            linie.Add("IdZajec;ImieNazwisko;DataRezerwacji");
+
+            foreach (Rezerwacja rezerwacja in rezerwacje)
+            {
+                string linia = $"{rezerwacja.IdZajec};{rezerwacja.ImieNazwisko};{rezerwacja.DataRezerwacji:yyyy-MM-dd HH:mm}";
+                linie.Add(linia);
+            }
+
+            File.WriteAllLines("rezerwacje.csv", linie);
+        }
+
+        static void PokazGrafik(List<Zajecia> grafik, List<Rezerwacja> rezerwacje)
         {
             Console.Clear();
-            PokazZajeciaBezPauzy(grafik);
+            Console.WriteLine("=== GRAFIK ZAJEC SPORTOWYCH ===");
+            Console.WriteLine();
 
-            Console.Write("Podaj numer zajec do usuniecia: ");
-            string tekst = Console.ReadLine();
-
-            if (int.TryParse(tekst, out int numer))
+            foreach (Zajecia zajecia in grafik)
             {
-                int indeks = numer - 1;
+                int liczbaRezerwacji = rezerwacje.Count(r => r.IdZajec == zajecia.Id);
 
-                if (indeks >= 0 && indeks < grafik.Count)
-                {
-                    grafik.RemoveAt(indeks);
-                    Console.WriteLine("Usunieto zajecia.");
-                }
-                else
-                {
-                    Console.WriteLine("Nie ma zajec o takim numerze.");
-                }
-            }
-            else
-            {
-                Console.WriteLine("Podano nieprawidlowa liczbe.");
+                Console.WriteLine($"{zajecia.Id}. {zajecia.Nazwa}");
+                Console.WriteLine($"   Poziom: {zajecia.Poziom}");
+                Console.WriteLine($"   Data: {zajecia.Data:yyyy-MM-dd HH:mm}");
+                Console.WriteLine($"   Czas trwania: {zajecia.CzasTrwaniaMinuty} min");
+                Console.WriteLine($"   Miejsca: {liczbaRezerwacji}/{zajecia.LimitMiejsc}");
+                Console.WriteLine($"   Prowadzacy: {zajecia.Prowadzacy}");
+                Console.WriteLine($"   Miejsce: {zajecia.Miejsce}");
+                Console.WriteLine();
             }
 
+            Console.WriteLine("Nacisnij Enter, aby wrocic do menu.");
+            Console.ReadLine();
+        }
+
+        static void ZarezerwujMiejsce(List<Zajecia> grafik, List<Rezerwacja> rezerwacje)
+        {
+            Console.Clear();
+            Console.WriteLine("=== REZERWACJA MIEJSCA ===");
+            Console.WriteLine();
+
+            foreach (Zajecia zajecia in grafik)
+            {
+                int liczbaRezerwacji = rezerwacje.Count(r => r.IdZajec == zajecia.Id);
+
+                Console.WriteLine($"{zajecia.Id}. {zajecia.Nazwa} | {zajecia.Data:yyyy-MM-dd HH:mm} | miejsca: {liczbaRezerwacji}/{zajecia.LimitMiejsc} | {zajecia.Miejsce}");
+            }
+
+            Console.WriteLine();
+            Console.Write("Podaj ID zajec: ");
+            string idTekst = Console.ReadLine();
+
+            int idZajec;
+
+            if (!int.TryParse(idTekst, out idZajec))
+            {
+                Console.WriteLine("Nieprawidlowe ID.");
+                Console.ReadLine();
+                return;
+            }
+
+            Zajecia wybraneZajecia = grafik.FirstOrDefault(z => z.Id == idZajec);
+
+            if (wybraneZajecia == null)
+            {
+                Console.WriteLine("Nie istnieja zajecia o takim ID.");
+                Console.ReadLine();
+                return;
+            }
+
+            int aktualnieZapisani = rezerwacje.Count(r => r.IdZajec == idZajec);
+
+            if (aktualnieZapisani >= wybraneZajecia.LimitMiejsc)
+            {
+                Console.WriteLine("Brak wolnych miejsc.");
+                Console.ReadLine();
+                return;
+            }
+
+            Console.Write("Podaj imie i nazwisko: ");
+            string imieNazwisko = Console.ReadLine();
+
+            if (string.IsNullOrWhiteSpace(imieNazwisko))
+            {
+                Console.WriteLine("Imie i nazwisko nie moze byc puste.");
+                Console.ReadLine();
+                return;
+            }
+
+            Rezerwacja nowaRezerwacja = new Rezerwacja
+            {
+                IdZajec = idZajec,
+                ImieNazwisko = imieNazwisko,
+                DataRezerwacji = DateTime.Now
+            };
+
+            rezerwacje.Add(nowaRezerwacja);
+            ZapiszRezerwacjeDoPliku(rezerwacje);
+
+            Console.WriteLine("Zarezerwowano miejsce.");
+            Console.ReadLine();
+        }
+
+        static void PokazRezerwacje(List<Zajecia> grafik, List<Rezerwacja> rezerwacje)
+        {
+            Console.Clear();
+            Console.WriteLine("=== LISTA REZERWACJI ===");
+            Console.WriteLine();
+
+            if (rezerwacje.Count == 0)
+            {
+                Console.WriteLine("Brak rezerwacji.");
+            }
+
+            foreach (Rezerwacja rezerwacja in rezerwacje)
+            {
+                Zajecia zajecia = grafik.FirstOrDefault(z => z.Id == rezerwacja.IdZajec);
+
+                if (zajecia != null)
+                {
+                    Console.WriteLine($"{rezerwacja.ImieNazwisko} -> {zajecia.Nazwa}");
+                    Console.WriteLine($"Data zajec: {zajecia.Data:yyyy-MM-dd HH:mm}");
+                    Console.WriteLine($"Miejsce: {zajecia.Miejsce}");
+                    Console.WriteLine($"Data rezerwacji: {rezerwacja.DataRezerwacji:yyyy-MM-dd HH:mm}");
+                    Console.WriteLine();
+                }
+            }
+
+            Console.WriteLine("Nacisnij Enter, aby wrocic do menu.");
             Console.ReadLine();
         }
     }
