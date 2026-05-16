@@ -45,53 +45,120 @@ namespace ProjektSemestralny_1
                 Console.WriteLine("7. Usun zajecia");
                 Console.WriteLine("8. Raport zajetosci zasobu");
                 Console.WriteLine("9. Wyjscie");
-                Console.Write("Wybierz opcje: ");
 
-                string wybor = Console.ReadLine();
+                int wybor = WczytajLiczbeCalkowita("Wybierz opcje: ", 1, 9);
 
                 switch (wybor)
                 {
-                    case "1":
+                    case 1:
                         PokazGrafik(grafik, rezerwacje);
                         break;
 
-                    case "2":
+                    case 2:
                         ZarezerwujMiejsce(grafik, rezerwacje);
                         break;
 
-                    case "3":
+                    case 3:
                         PokazRezerwacje(grafik, rezerwacje);
                         break;
 
-                    case "4":
+                    case 4:
                         AnulujRezerwacje(grafik, rezerwacje);
                         break;
 
-                    case "5":
+                    case 5:
                         ModyfikujRezerwacje(grafik, rezerwacje);
                         break;
 
-                    case "6":
+                    case 6:
                         DodajZajecia(grafik);
                         break;
 
-                    case "7":
+                    case 7:
                         UsunZajecia(grafik, rezerwacje);
                         break;
 
-                    case "8":
+                    case 8:
                         RaportZajetosciZasobu(grafik, rezerwacje);
                         break;
 
-                    case "9":
+                    case 9:
                         dziala = false;
                         break;
-
-                    default:
-                        Console.WriteLine("Nieprawidlowa opcja.");
-                        Console.ReadLine();
-                        break;
                 }
+            }
+        }
+
+        static string WczytajNiepustyTekst(string komunikat)
+        {
+            string wartosc;
+
+            do
+            {
+                Console.Write(komunikat);
+                wartosc = Console.ReadLine();
+
+                if (string.IsNullOrWhiteSpace(wartosc))
+                {
+                    Console.WriteLine("To pole nie moze byc puste. Sprobuj ponownie.");
+                }
+
+            } while (string.IsNullOrWhiteSpace(wartosc));
+
+            return wartosc.Trim();
+        }
+
+        static int WczytajLiczbeCalkowita(string komunikat, int min, int max)
+        {
+            int liczba;
+
+            while (true)
+            {
+                Console.Write(komunikat);
+                string tekst = Console.ReadLine();
+
+                if (int.TryParse(tekst, out liczba) && liczba >= min && liczba <= max)
+                {
+                    return liczba;
+                }
+
+                Console.WriteLine($"Podaj liczbe od {min} do {max}.");
+            }
+        }
+
+        static int WczytajLiczbeWiekszaOdZera(string komunikat)
+        {
+            int liczba;
+
+            while (true)
+            {
+                Console.Write(komunikat);
+                string tekst = Console.ReadLine();
+
+                if (int.TryParse(tekst, out liczba) && liczba > 0)
+                {
+                    return liczba;
+                }
+
+                Console.WriteLine("Podaj liczbe wieksza od 0.");
+            }
+        }
+
+        static DateTime WczytajDate(string komunikat)
+        {
+            DateTime data;
+
+            while (true)
+            {
+                Console.Write(komunikat);
+                string tekst = Console.ReadLine();
+
+                if (DateTime.TryParseExact(tekst, "yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out data))
+                {
+                    return data;
+                }
+
+                Console.WriteLine("Bledny format daty. Uzyj formatu YYYY-MM-DD HH:MM, np. 2026-05-20 10:00.");
             }
         }
 
@@ -275,22 +342,50 @@ namespace ProjektSemestralny_1
             Console.WriteLine("=== GRAFIK ZAJEC SPORTOWYCH ===");
             Console.WriteLine();
 
-            foreach (Zajecia zajecia in grafik)
-            {
-                int liczbaRezerwacji = rezerwacje.Count(r => r.IdZajec == zajecia.Id);
+            int szerokoscKafelka = 50;
 
-                Console.WriteLine($"{zajecia.Id}. {zajecia.Nazwa}");
-                Console.WriteLine($"   Poziom: {zajecia.Poziom}");
-                Console.WriteLine($"   Data: {zajecia.Data:yyyy-MM-dd HH:mm}");
-                Console.WriteLine($"   Czas trwania: {zajecia.CzasTrwaniaMinuty} min");
-                Console.WriteLine($"   Miejsca: {liczbaRezerwacji}/{zajecia.LimitMiejsc}");
-                Console.WriteLine($"   Prowadzacy: {zajecia.Prowadzacy}");
-                Console.WriteLine($"   Miejsce: {zajecia.Miejsce}");
+            for (int i = 0; i < grafik.Count; i += 2)
+            {
+                Zajecia lewe = grafik[i];
+                Zajecia prawe = null;
+
+                if (i + 1 < grafik.Count)
+                {
+                    prawe = grafik[i + 1];
+                }
+
+                string[] lewyKafelek = PrzygotujKafelek(lewe, rezerwacje);
+                string[] prawyKafelek = prawe != null ? PrzygotujKafelek(prawe, rezerwacje) : new string[lewyKafelek.Length];
+
+                for (int j = 0; j < lewyKafelek.Length; j++)
+                {
+                    string lewaLinia = lewyKafelek[j].PadRight(szerokoscKafelka);
+                    string prawaLinia = prawyKafelek[j];
+
+                    Console.WriteLine(lewaLinia + prawaLinia);
+                }
+
                 Console.WriteLine();
             }
 
             Console.WriteLine("Nacisnij Enter, aby wrocic do menu.");
             Console.ReadLine();
+        }
+
+        static string[] PrzygotujKafelek(Zajecia zajecia, List<Rezerwacja> rezerwacje)
+        {
+            int liczbaRezerwacji = rezerwacje.Count(r => r.IdZajec == zajecia.Id);
+
+            return new string[]
+            {
+                $"{zajecia.Id}. {zajecia.Nazwa}",
+                $"Poziom: {zajecia.Poziom}",
+                $"Data: {zajecia.Data:yyyy-MM-dd HH:mm}",
+                $"Czas: {zajecia.CzasTrwaniaMinuty} min",
+                $"Miejsca: {liczbaRezerwacji}/{zajecia.LimitMiejsc}",
+                $"Prowadzacy: {zajecia.Prowadzacy}",
+                $"Miejsce: {zajecia.Miejsce}"
+            };
         }
 
         static void ZarezerwujMiejsce(List<Zajecia> grafik, List<Rezerwacja> rezerwacje)
@@ -307,44 +402,33 @@ namespace ProjektSemestralny_1
             }
 
             Console.WriteLine();
-            Console.Write("Podaj ID zajec: ");
 
             int idZajec;
 
-            if (!int.TryParse(Console.ReadLine(), out idZajec))
+            while (true)
             {
-                Console.WriteLine("Nieprawidlowe ID.");
-                Console.ReadLine();
-                return;
+                idZajec = WczytajLiczbeWiekszaOdZera("Podaj ID zajec: ");
+
+                Zajecia wybraneZajecia = grafik.FirstOrDefault(z => z.Id == idZajec);
+
+                if (wybraneZajecia == null)
+                {
+                    Console.WriteLine("Nie istnieja zajecia o takim ID. Sprobuj ponownie.");
+                    continue;
+                }
+
+                int aktualnieZapisani = rezerwacje.Count(r => r.IdZajec == idZajec);
+
+                if (aktualnieZapisani >= wybraneZajecia.LimitMiejsc)
+                {
+                    Console.WriteLine("Brak wolnych miejsc na tych zajeciach. Wybierz inne zajecia.");
+                    continue;
+                }
+
+                break;
             }
 
-            Zajecia wybraneZajecia = grafik.FirstOrDefault(z => z.Id == idZajec);
-
-            if (wybraneZajecia == null)
-            {
-                Console.WriteLine("Nie istnieja zajecia o takim ID.");
-                Console.ReadLine();
-                return;
-            }
-
-            int aktualnieZapisani = rezerwacje.Count(r => r.IdZajec == idZajec);
-
-            if (aktualnieZapisani >= wybraneZajecia.LimitMiejsc)
-            {
-                Console.WriteLine("Brak wolnych miejsc.");
-                Console.ReadLine();
-                return;
-            }
-
-            Console.Write("Podaj imie i nazwisko: ");
-            string imieNazwisko = Console.ReadLine();
-
-            if (string.IsNullOrWhiteSpace(imieNazwisko))
-            {
-                Console.WriteLine("Imie i nazwisko nie moze byc puste.");
-                Console.ReadLine();
-                return;
-            }
+            string imieNazwisko = WczytajNiepustyTekst("Podaj imie i nazwisko: ");
 
             Rezerwacja nowaRezerwacja = new Rezerwacja
             {
@@ -415,25 +499,9 @@ namespace ProjektSemestralny_1
             }
 
             Console.WriteLine();
-            Console.Write("Podaj numer rezerwacji do anulowania: ");
 
-            int numer;
-
-            if (!int.TryParse(Console.ReadLine(), out numer))
-            {
-                Console.WriteLine("Nieprawidlowy numer.");
-                Console.ReadLine();
-                return;
-            }
-
+            int numer = WczytajLiczbeCalkowita("Podaj numer rezerwacji do anulowania: ", 1, rezerwacje.Count);
             int indeks = numer - 1;
-
-            if (indeks < 0 || indeks >= rezerwacje.Count)
-            {
-                Console.WriteLine("Nie ma rezerwacji o takim numerze.");
-                Console.ReadLine();
-                return;
-            }
 
             rezerwacje.RemoveAt(indeks);
             ZapiszRezerwacjeDoPliku(rezerwacje);
@@ -467,25 +535,9 @@ namespace ProjektSemestralny_1
             }
 
             Console.WriteLine();
-            Console.Write("Podaj numer rezerwacji do modyfikacji: ");
 
-            int numer;
-
-            if (!int.TryParse(Console.ReadLine(), out numer))
-            {
-                Console.WriteLine("Nieprawidlowy numer.");
-                Console.ReadLine();
-                return;
-            }
-
+            int numer = WczytajLiczbeCalkowita("Podaj numer rezerwacji do modyfikacji: ", 1, rezerwacje.Count);
             int indeks = numer - 1;
-
-            if (indeks < 0 || indeks >= rezerwacje.Count)
-            {
-                Console.WriteLine("Nie ma rezerwacji o takim numerze.");
-                Console.ReadLine();
-                return;
-            }
 
             Rezerwacja wybranaRezerwacja = rezerwacje[indeks];
 
@@ -493,21 +545,12 @@ namespace ProjektSemestralny_1
             Console.WriteLine("Co chcesz zmienic?");
             Console.WriteLine("1. Imie i nazwisko");
             Console.WriteLine("2. Zajecia");
-            Console.Write("Wybierz opcje: ");
 
-            string wybor = Console.ReadLine();
+            int wybor = WczytajLiczbeCalkowita("Wybierz opcje: ", 1, 2);
 
-            if (wybor == "1")
+            if (wybor == 1)
             {
-                Console.Write("Podaj nowe imie i nazwisko: ");
-                string noweImieNazwisko = Console.ReadLine();
-
-                if (string.IsNullOrWhiteSpace(noweImieNazwisko))
-                {
-                    Console.WriteLine("Imie i nazwisko nie moze byc puste.");
-                    Console.ReadLine();
-                    return;
-                }
+                string noweImieNazwisko = WczytajNiepustyTekst("Podaj nowe imie i nazwisko: ");
 
                 wybranaRezerwacja.ImieNazwisko = noweImieNazwisko;
                 ZapiszRezerwacjeDoPliku(rezerwacje);
@@ -515,7 +558,7 @@ namespace ProjektSemestralny_1
                 Console.WriteLine("Zmieniono dane rezerwacji.");
                 Console.ReadLine();
             }
-            else if (wybor == "2")
+            else if (wybor == 2)
             {
                 Console.Clear();
                 Console.WriteLine("=== WYBIERZ NOWE ZAJECIA ===");
@@ -528,44 +571,36 @@ namespace ProjektSemestralny_1
                 }
 
                 Console.WriteLine();
-                Console.Write("Podaj ID nowych zajec: ");
 
                 int noweIdZajec;
 
-                if (!int.TryParse(Console.ReadLine(), out noweIdZajec))
+                while (true)
                 {
-                    Console.WriteLine("Nieprawidlowe ID.");
-                    Console.ReadLine();
-                    return;
-                }
+                    noweIdZajec = WczytajLiczbeWiekszaOdZera("Podaj ID nowych zajec: ");
 
-                Zajecia noweZajecia = grafik.FirstOrDefault(z => z.Id == noweIdZajec);
+                    Zajecia noweZajecia = grafik.FirstOrDefault(z => z.Id == noweIdZajec);
 
-                if (noweZajecia == null)
-                {
-                    Console.WriteLine("Nie istnieja zajecia o takim ID.");
-                    Console.ReadLine();
-                    return;
-                }
+                    if (noweZajecia == null)
+                    {
+                        Console.WriteLine("Nie istnieja zajecia o takim ID. Sprobuj ponownie.");
+                        continue;
+                    }
 
-                int aktualnieZapisani = rezerwacje.Count(r => r.IdZajec == noweIdZajec);
+                    int aktualnieZapisani = rezerwacje.Count(r => r.IdZajec == noweIdZajec);
 
-                if (noweIdZajec != wybranaRezerwacja.IdZajec && aktualnieZapisani >= noweZajecia.LimitMiejsc)
-                {
-                    Console.WriteLine("Brak wolnych miejsc na wybranych zajeciach.");
-                    Console.ReadLine();
-                    return;
+                    if (noweIdZajec != wybranaRezerwacja.IdZajec && aktualnieZapisani >= noweZajecia.LimitMiejsc)
+                    {
+                        Console.WriteLine("Brak wolnych miejsc na wybranych zajeciach. Wybierz inne.");
+                        continue;
+                    }
+
+                    break;
                 }
 
                 wybranaRezerwacja.IdZajec = noweIdZajec;
                 ZapiszRezerwacjeDoPliku(rezerwacje);
 
                 Console.WriteLine("Zmieniono zajecia w rezerwacji.");
-                Console.ReadLine();
-            }
-            else
-            {
-                Console.WriteLine("Nieprawidlowa opcja.");
                 Console.ReadLine();
             }
         }
@@ -575,80 +610,21 @@ namespace ProjektSemestralny_1
             Console.Clear();
             Console.WriteLine("=== DODAWANIE NOWYCH ZAJEC ===");
 
-            Console.Write("Nazwa zajec: ");
-            string nazwa = Console.ReadLine();
+            string nazwa = WczytajNiepustyTekst("Nazwa zajec: ");
+            string poziom = WczytajNiepustyTekst("Poziom: ");
+            DateTime data = WczytajDate("Data (w formacie YYYY-MM-DD HH:MM): ");
+            int czas = WczytajLiczbeWiekszaOdZera("Czas trwania (minuty): ");
+            int limit = WczytajLiczbeWiekszaOdZera("Limit miejsc: ");
+            string prowadzacy = WczytajNiepustyTekst("Prowadzacy: ");
+            string miejsce = WczytajNiepustyTekst("Miejsce: ");
 
-            if (string.IsNullOrWhiteSpace(nazwa))
-            {
-                Console.WriteLine("Nazwa nie moze byc pusta.");
-                Console.ReadLine();
-                return;
-            }
-
-            Console.Write("Poziom: ");
-            string poziom = Console.ReadLine();
-
-            if (string.IsNullOrWhiteSpace(poziom))
-            {
-                Console.WriteLine("Poziom nie moze byc pusty.");
-                Console.ReadLine();
-                return;
-            }
-
-            Console.Write("Data (w formacie YYYY-MM-DD HH:MM): ");
-            DateTime data;
-
-            while (!DateTime.TryParseExact(Console.ReadLine(), "yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out data))
-            {
-                Console.Write("Bledny format! Podaj date jeszcze raz (YYYY-MM-DD HH:MM): ");
-            }
-
-            Console.Write("Czas trwania (minuty): ");
-            int czas;
-
-            while (!int.TryParse(Console.ReadLine(), out czas) || czas <= 0)
-            {
-                Console.Write("Bledna wartosc. Podaj liczbe wieksza od 0: ");
-            }
-
-            Console.Write("Limit miejsc: ");
-            int limit;
-
-            while (!int.TryParse(Console.ReadLine(), out limit) || limit <= 0)
-            {
-                Console.Write("Bledna wartosc. Podaj liczbe wieksza od 0: ");
-            }
-
-            Console.Write("Prowadzacy: ");
-            string prowadzacy = Console.ReadLine();
-
-            if (string.IsNullOrWhiteSpace(prowadzacy))
-            {
-                Console.WriteLine("Prowadzacy nie moze byc pusty.");
-                Console.ReadLine();
-                return;
-            }
-
-            Console.Write("Miejsce: ");
-            string miejsce = Console.ReadLine();
-
-            if (string.IsNullOrWhiteSpace(miejsce))
-            {
-                Console.WriteLine("Miejsce nie moze byc puste.");
-                Console.ReadLine();
-                return;
-            }
-
-            bool konflikt = grafik.Any(z =>
-                z.Miejsce.ToLower() == miejsce.ToLower()
-                && z.Data == data
-            );
-
-            if (konflikt)
+            while (grafik.Any(z => z.Miejsce.ToLower() == miejsce.ToLower() && z.Data == data))
             {
                 Console.WriteLine("Istnieja juz zajecia w tym samym miejscu o tej samej godzinie.");
-                Console.ReadLine();
-                return;
+                Console.WriteLine("Podaj inne miejsce albo inna date.");
+
+                miejsce = WczytajNiepustyTekst("Miejsce: ");
+                data = WczytajDate("Data (w formacie YYYY-MM-DD HH:MM): ");
             }
 
             int noweId = grafik.Count > 0 ? grafik.Max(z => z.Id) + 1 : 1;
@@ -685,38 +661,35 @@ namespace ProjektSemestralny_1
             }
 
             Console.WriteLine();
-            Console.Write("Podaj ID zajec do usuniecia: ");
 
             int idZajec;
 
-            if (!int.TryParse(Console.ReadLine(), out idZajec))
+            while (true)
             {
-                Console.WriteLine("Nieprawidlowe ID.");
+                idZajec = WczytajLiczbeWiekszaOdZera("Podaj ID zajec do usuniecia: ");
+
+                Zajecia doUsuniecia = grafik.FirstOrDefault(z => z.Id == idZajec);
+
+                if (doUsuniecia == null)
+                {
+                    Console.WriteLine("Nie znaleziono zajec o takim ID. Sprobuj ponownie.");
+                    continue;
+                }
+
+                if (rezerwacje.Any(r => r.IdZajec == idZajec))
+                {
+                    Console.WriteLine("Nie mozna usunac tych zajec, poniewaz sa juz na nie zapisane osoby.");
+                    Console.WriteLine("Wybierz inne zajecia albo najpierw anuluj rezerwacje.");
+                    continue;
+                }
+
+                grafik.Remove(doUsuniecia);
+                ZapiszGrafikDoPliku(grafik);
+
+                Console.WriteLine("Zajecia zostaly usuniete.");
                 Console.ReadLine();
                 return;
             }
-
-            Zajecia doUsuniecia = grafik.FirstOrDefault(z => z.Id == idZajec);
-
-            if (doUsuniecia == null)
-            {
-                Console.WriteLine("Nie znaleziono zajec o takim ID.");
-                Console.ReadLine();
-                return;
-            }
-
-            if (rezerwacje.Any(r => r.IdZajec == idZajec))
-            {
-                Console.WriteLine("Nie mozna usunac tych zajec, poniewaz sa juz na nie zapisane osoby.");
-                Console.ReadLine();
-                return;
-            }
-
-            grafik.Remove(doUsuniecia);
-            ZapiszGrafikDoPliku(grafik);
-
-            Console.WriteLine("Zajecia zostaly usuniete.");
-            Console.ReadLine();
         }
 
         static void RaportZajetosciZasobu(List<Zajecia> grafik, List<Rezerwacja> rezerwacje)
@@ -725,35 +698,9 @@ namespace ProjektSemestralny_1
             Console.WriteLine("=== RAPORT ZAJETOSCI ZASOBU ===");
             Console.WriteLine();
 
-            Console.Write("Podaj nazwe zasobu / miejsca, np. Sala fitness, Kort 1, Boisko: ");
-            string miejsce = Console.ReadLine();
-
-            if (string.IsNullOrWhiteSpace(miejsce))
-            {
-                Console.WriteLine("Nazwa zasobu nie moze byc pusta.");
-                Console.ReadLine();
-                return;
-            }
-
-            Console.Write("Podaj rok, np. 2026: ");
-            int rok;
-
-            if (!int.TryParse(Console.ReadLine(), out rok))
-            {
-                Console.WriteLine("Nieprawidlowy rok.");
-                Console.ReadLine();
-                return;
-            }
-
-            Console.Write("Podaj miesiac, np. 5: ");
-            int miesiac;
-
-            if (!int.TryParse(Console.ReadLine(), out miesiac) || miesiac < 1 || miesiac > 12)
-            {
-                Console.WriteLine("Nieprawidlowy miesiac.");
-                Console.ReadLine();
-                return;
-            }
+            string miejsce = WczytajNiepustyTekst("Podaj nazwe zasobu / miejsca, np. Sala fitness, Kort 1, Boisko: ");
+            int rok = WczytajLiczbeCalkowita("Podaj rok, np. 2026: ", 1900, 3000);
+            int miesiac = WczytajLiczbeCalkowita("Podaj miesiac, np. 5: ", 1, 12);
 
             List<Zajecia> zajeciaWZasobie = grafik
                 .Where(z => z.Miejsce.ToLower() == miejsce.ToLower()
@@ -761,11 +708,20 @@ namespace ProjektSemestralny_1
                             && z.Data.Month == miesiac)
                 .ToList();
 
-            if (zajeciaWZasobie.Count == 0)
+            while (zajeciaWZasobie.Count == 0)
             {
                 Console.WriteLine("Brak zajec dla podanego zasobu w wybranym miesiacu.");
-                Console.ReadLine();
-                return;
+                Console.WriteLine("Sprobuj podac inne dane.");
+
+                miejsce = WczytajNiepustyTekst("Podaj nazwe zasobu / miejsca: ");
+                rok = WczytajLiczbeCalkowita("Podaj rok: ", 1900, 3000);
+                miesiac = WczytajLiczbeCalkowita("Podaj miesiac: ", 1, 12);
+
+                zajeciaWZasobie = grafik
+                    .Where(z => z.Miejsce.ToLower() == miejsce.ToLower()
+                                && z.Data.Year == rok
+                                && z.Data.Month == miesiac)
+                    .ToList();
             }
 
             int sumaMiejsc = 0;
